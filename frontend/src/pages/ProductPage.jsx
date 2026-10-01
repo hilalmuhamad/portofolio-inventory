@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api/api';
 import { useAuth } from '../context/useAuth';
 
-const emptyForm = { sku: '', name: '', price: '', stock: '', categoryId: '' };
+const emptyForm = { sku: '', name: '', price: '', categoryId: '' };
 
 export default function ProductPage() {
   const { user } = useAuth();
@@ -101,7 +101,6 @@ export default function ProductPage() {
       sku: product.sku,
       name: product.name,
       price: String(product.price),
-      stock: String(product.stock),
       categoryId: String(product.categoryId),
     });
     setFormError('');
@@ -116,7 +115,6 @@ export default function ProductPage() {
       sku: form.sku,
       name: form.name,
       price: Number(form.price),
-      stock: Number(form.stock),
       categoryId: Number(form.categoryId),
     };
     try {
@@ -318,34 +316,24 @@ export default function ProductPage() {
               ))}
             </select>
 
-            <div className="mb-6 flex gap-3">
-              <div className="flex-1">
-                <label className="mb-1 block text-sm font-medium">Harga</label>
-                <input
-                  required
-                  type="number"
-                  min="1"
-                  value={form.price}
-                  onChange={(e) => setForm({ ...form, price: e.target.value })}
-                  className="w-full rounded border px-3 py-2 text-sm outline-none focus:border-slate-500"
-                  placeholder="50000"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="mb-1 block text-sm font-medium">Stok</label>
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  value={form.stock}
-                  onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                  className="w-full rounded border px-3 py-2 text-sm outline-none focus:border-slate-500"
-                  placeholder="0"
-                />
-              </div>
-            </div>
+            <label className="mb-1 block text-sm font-medium">Harga</label>
+            <input
+              required
+              type="number"
+              min="1"
+              value={form.price}
+              onChange={(e) => setForm({ ...form, price: e.target.value })}
+              className="mb-2 w-full rounded border px-3 py-2 text-sm outline-none focus:border-slate-500"
+              placeholder="50000"
+            />
 
-            <div className="flex gap-2">
+            {!editingId && (
+              <p className="mb-6 text-xs text-slate-400">
+                Stok awal otomatis 0. Tambah stok lewat menu Transaksi (Barang Masuk).
+              </p>
+            )}
+
+            <div className={editingId ? 'mb-6 flex gap-2' : 'flex gap-2'}>
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
