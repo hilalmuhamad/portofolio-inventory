@@ -1,0 +1,64 @@
+// Konfigurasi koneksi
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. Tabel Users (Untuk Admin & Staff Gudang)
+model User {
+  id           Int           @id @default(autoincrement())
+  name         String
+  email        String        @unique
+  password     String
+  role         String        @default("staff") // 'admin' atau 'staff'
+  createdAt    DateTime      @default(now())
+
+  // Relasi: Satu user bisa melakukan banyak transaksi
+  transactions Transaction[]
+}
+
+// 2. Tabel Categories (Kategori Barang)
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String? // Tanda '?' berarti boleh kosong (opsional)
+
+  // Relasi: Satu kategori bisa memiliki banyak produk
+  products    Product[]
+}
+
+// 3. Tabel Products (Data Barang)
+model Product {
+  id          Int           @id @default(autoincrement())
+  sku         String        @unique // Kode barang (Barcode)
+  name        String
+  stock       Int           @default(0)
+  price       Int
+
+  // Relasi ke Category
+  categoryId  Int
+  category    Category      @relation(fields: [categoryId], references: [id])
+
+  // Relasi ke Transaction
+  transactions Transaction[]
+}
+
+// 4. Tabel Transactions (Riwayat Barang Masuk / Keluar)
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  type      String // 'masuk' atau 'keluar'
+  quantity  Int
+  date      DateTime @default(now())
+
+  // Relasi siapa yang melakukan transaksi (User/Kasir)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+
+  // Relasi barang apa yang ditransaksikan (Product)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+}
