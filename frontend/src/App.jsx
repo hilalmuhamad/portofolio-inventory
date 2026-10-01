@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import CategoryPage from './pages/CategoryPage';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
+import ProductPage from './pages/ProductPage';
 import PlaceholderPage from './pages/PlaceholderPage';
 
 export default function App() {
@@ -21,7 +22,7 @@ export default function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="kategori" element={<CategoryPage />} />
-        <Route path="produk" element={<PlaceholderPage title="Produk" />} />
+        <Route path="produk" element={<ProductPage />} />
         <Route path="transaksi" element={<PlaceholderPage title="Transaksi" />} />
       </Route>
 
