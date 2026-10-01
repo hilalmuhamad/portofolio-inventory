@@ -19,7 +19,7 @@ export default function MainLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-100">
+    <div className="flex min-h-screen bg-gray-50">
       <aside className="w-56 shrink-0 bg-slate-900 p-4 text-slate-200">
         <p className="mb-6 px-2 text-sm font-bold uppercase tracking-wide">
           Inventory

@@ -3,16 +3,14 @@ import { useCallback, useEffect, useState } from 'react';
 import api from '../api/api';
 import { useAuth } from '../context/useAuth';
 
-const rupiah = (value) => `Rp ${Number(value).toLocaleString('id-ID')}`;
-
 const formatDate = (value) =>
   new Date(value).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
 
-function StatCard({ label, value, accent }) {
+function SummaryCard({ label, value, accent }) {
   return (
-    <div className="rounded-xl bg-white p-5 shadow-sm">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${accent ?? 'text-slate-900'}`}>{value}</p>
+    <div className="rounded-xl bg-white p-5 shadow">
+      <p className="text-sm text-gray-500">{label}</p>
+      <p className={`mt-1 text-2xl font-bold ${accent ?? 'text-gray-900'}`}>{value}</p>
     </div>
   );
 }
@@ -32,10 +30,9 @@ export default function DashboardPage() {
     let cancelled = false;
     fetchDashboard()
       .then((res) => {
-        if (!cancelled) {
-          setData(res);
-          setError('');
-        }
+        if (cancelled) return;
+        setData(res);
+        setError('');
       })
       .catch((err) => {
         if (!cancelled) setError(err.response?.data?.message ?? 'Gagal memuat dashboard');
@@ -48,87 +45,81 @@ export default function DashboardPage() {
     };
   }, [fetchDashboard]);
 
-  if (loading) return <p className="text-sm text-slate-400">Memuat dashboard...</p>;
+  if (loading) return <p className="text-sm text-gray-400">Memuat dashboard...</p>;
 
   if (error) {
     return <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>;
   }
 
-  const { totals, transactions, lowStock, recentTransactions } = data;
+  const { totals, transactions, recentTransactions } = data;
 
   return (
     <div>
       <h1 className="mb-1 text-xl font-bold">Dashboard</h1>
-      <p className="mb-6 text-sm text-slate-500">
+      <p className="mb-6 text-sm text-gray-500">
         Selamat datang kembali, {user?.name}.
       </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total Produk" value={totals.products} />
-        <StatCard label="Total Kategori" value={totals.categories} />
-        <StatCard label="Total Stok" value={totals.stock} />
-        <StatCard
-          label="Nilai Inventaris"
-          value={rupiah(totals.inventoryValue)}
-          accent="text-emerald-600"
+        <SummaryCard label="Total Produk" value={totals.products} />
+        <SummaryCard label="Total Kategori" value={totals.categories} />
+        <SummaryCard
+          label="Transaksi Masuk"
+          value={transactions.masuk}
+          accent="text-green-600"
+        />
+        <SummaryCard
+          label="Transaksi Keluar"
+          value={transactions.keluar}
+          accent="text-red-600"
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <section className="rounded-xl bg-white p-5 shadow-sm">
-          <h2 className="mb-4 font-semibold">Stok Menipis (≤ 5)</h2>
-          {lowStock.length === 0 ? (
-            <p className="text-sm text-slate-400">Semua stok aman.</p>
-          ) : (
-            <ul className="divide-y text-sm">
-              {lowStock.map((p) => (
-                <li key={p.id} className="flex items-center justify-between py-2">
-                  <span>
-                    <span className="font-medium">{p.name}</span>
-                    <span className="ml-2 font-mono text-xs text-slate-400">{p.sku}</span>
-                  </span>
-                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">
-                    {p.stock}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section className="rounded-xl bg-white p-5 shadow-sm">
-          <h2 className="mb-4 font-semibold">Transaksi Terbaru</h2>
-          {recentTransactions.length === 0 ? (
-            <p className="text-sm text-slate-400">Belum ada transaksi.</p>
-          ) : (
-            <ul className="divide-y text-sm">
-              {recentTransactions.map((t) => (
-                <li key={t.id} className="flex items-center justify-between py-2">
-                  <span>
-                    <span className="font-medium">{t.product?.name}</span>
-                    <span className="ml-2 text-xs text-slate-400">{formatDate(t.date)}</span>
-                  </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      t.type === 'masuk'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}
-                  >
-                    {t.type === 'masuk' ? '+' : '-'}
-                    {t.quantity}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+      <div className="mt-6 overflow-hidden rounded-xl bg-white shadow">
+        <div className="border-b px-5 py-4">
+          <h2 className="font-semibold">5 Transaksi Terakhir</h2>
+        </div>
+        <table className="w-full text-left text-sm">
+          <thead className="bg-gray-50 text-gray-500">
+            <tr>
+              <th className="px-5 py-3 font-medium">Tanggal</th>
+              <th className="px-5 py-3 font-medium">Produk</th>
+              <th className="px-5 py-3 font-medium">Jenis</th>
+              <th className="px-5 py-3 font-medium">Jumlah</th>
+              <th className="px-5 py-3 font-medium">Kasir</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recentTransactions.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-5 py-6 text-center text-gray-400">
+                  Belum ada transaksi
+                </td>
+              </tr>
+            ) : (
+              recentTransactions.map((t) => (
+                <tr key={t.id} className="border-t">
+                  <td className="px-5 py-3 text-gray-500">{formatDate(t.date)}</td>
+                  <td className="px-5 py-3 font-medium">{t.product?.name}</td>
+                  <td className="px-5 py-3">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        t.type === 'masuk'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}
+                    >
+                      {t.type === 'masuk' ? 'Masuk' : 'Keluar'}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3">{t.quantity}</td>
+                  <td className="px-5 py-3 text-gray-500">{t.user?.name}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
-
-      <p className="mt-4 text-xs text-slate-400">
-        Total {transactions.total} transaksi tercatat ({transactions.masuk} masuk,{' '}
-        {transactions.keluar} keluar).
-      </p>
     </div>
   );
 }
