@@ -6,7 +6,9 @@ import CategoryPage from './pages/CategoryPage';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import ProductPage from './pages/ProductPage';
+import ReportPage from './pages/ReportPage';
 import TransactionPage from './pages/TransactionPage';
+import UserPage from './pages/UserPage';
 
 export default function App() {
   return (
@@ -24,6 +26,15 @@ export default function App() {
         <Route path="kategori" element={<CategoryPage />} />
         <Route path="produk" element={<ProductPage />} />
         <Route path="transaksi" element={<TransactionPage />} />
+        <Route path="laporan" element={<ReportPage />} />
+        <Route
+          path="users"
+          element={
+            <ProtectedRoute adminOnly>
+              <UserPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -4,9 +4,15 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const asyncHandler = require('../utils/asyncHandler');
 const HttpError = require('../utils/HttpError');
-
-const signToken = (user) =>
-  jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+const { jwtSecret } = require('../config/env');
+const {
+  signAccessToken,
+  signRefreshToken,
+  hashToken,
+  setRefreshCookie,
+  clearRefreshCookie,
+  cookieName,
+} = require('../utils/tokens');
 
 const publicUser = (user) => ({
   id: user.id,
@@ -17,6 +23,17 @@ const publicUser = (user) => ({
 });
 
 const isEmail = (value) => typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+const issueSession = async (res, user) => {
+  const accessToken = signAccessToken(user);
+  const refreshToken = signRefreshToken(user);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { refreshTokenHash: hashToken(refreshToken) },
+  });
+  setRefreshCookie(res, refreshToken);
+  return accessToken;
+};
 
 const register = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -37,9 +54,10 @@ const register = asyncHandler(async (req, res) => {
     data: { name: name.trim(), email, password: passwordHash, role: 'staff' },
   });
 
+  const accessToken = await issueSession(res, user);
   res.status(201).json({
     message: 'User registered',
-    data: { user: publicUser(user), token: signToken(user) },
+    data: { user: publicUser(user), accessToken },
   });
 });
 
@@ -53,10 +71,54 @@ const login = asyncHandler(async (req, res) => {
   const match = user ? await bcrypt.compare(password, user.password) : false;
   if (!match) throw new HttpError(401, 'Email atau password salah');
 
+  const accessToken = await issueSession(res, user);
   res.json({
     message: 'Login success',
-    data: { user: publicUser(user), token: signToken(user) },
+    data: { user: publicUser(user), accessToken },
   });
 });
 
-module.exports = { register, login };
+const refresh = asyncHandler(async (req, res) => {
+  const token = req.cookies?.[cookieName];
+  if (!token) throw new HttpError(401, 'Refresh token tidak ada');
+
+  let payload;
+  try {
+    payload = jwt.verify(token, jwtSecret);
+  } catch {
+    clearRefreshCookie(res);
+    throw new HttpError(401, 'Refresh token tidak valid atau kedaluwarsa');
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: payload.id } });
+  if (!user || user.refreshTokenHash !== hashToken(token)) {
+    clearRefreshCookie(res);
+    throw new HttpError(401, 'Refresh token sudah tidak berlaku');
+  }
+
+  const accessToken = await issueSession(res, user);
+  res.json({ message: 'Token diperbarui', data: { user: publicUser(user), accessToken } });
+});
+
+const logout = asyncHandler(async (req, res) => {
+  const token = req.cookies?.[cookieName];
+  if (token) {
+    try {
+      const payload = jwt.verify(token, jwtSecret);
+      await prisma.user.updateMany({
+        where: { id: payload.id, refreshTokenHash: hashToken(token) },
+        data: { refreshTokenHash: null },
+      });
+    } catch {
+      // token rusak/kedaluwarsa: cukup bersihkan cookie
+    }
+  }
+  clearRefreshCookie(res);
+  res.json({ message: 'Logout berhasil' });
+});
+
+const me = asyncHandler(async (req, res) => {
+  res.json({ data: { user: req.user } });
+});
+
+module.exports = { register, login, refresh, logout, me };

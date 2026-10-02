@@ -16,6 +16,7 @@ model User {
   password     String
   role         String        @default("staff") // 'admin' atau 'staff'
   createdAt    DateTime      @default(now())
+  refreshTokenHash String?
 
   // Relasi: Satu user bisa melakukan banyak transaksi
   transactions Transaction[]

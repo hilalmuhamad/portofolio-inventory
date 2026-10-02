@@ -1,10 +1,25 @@
 import { useCallback, useEffect, useState } from 'react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 import api from '../api/api';
 import { useAuth } from '../context/useAuth';
 
 const formatDate = (value) =>
   new Date(value).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+
+const shortDay = (value) =>
+  new Date(value).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
 
 function SummaryCard({ label, value, accent }) {
   return (
@@ -51,7 +66,7 @@ export default function DashboardPage() {
     return <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>;
   }
 
-  const { totals, transactions, recentTransactions } = data;
+  const { totals, transactions, trend, topProducts, recentTransactions } = data;
 
   return (
     <div>
@@ -73,6 +88,60 @@ export default function DashboardPage() {
           value={transactions.keluar}
           accent="text-red-600"
         />
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-xl bg-white p-5 shadow lg:col-span-2">
+          <h2 className="mb-4 font-semibold">Tren Transaksi (14 Hari)</h2>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={trend ?? []}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="day" tickFormatter={shortDay} fontSize={12} />
+                <YAxis fontSize={12} allowDecimals={false} />
+                <Tooltip labelFormatter={shortDay} />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="masuk"
+                  name="Masuk"
+                  stroke="#16a34a"
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="keluar"
+                  name="Keluar"
+                  stroke="#dc2626"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-white p-5 shadow">
+          <h2 className="mb-4 font-semibold">Produk Terlaris</h2>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={topProducts ?? []} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+                <XAxis type="number" fontSize={12} allowDecimals={false} />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={110}
+                  fontSize={11}
+                  tickFormatter={(v) => (v.length > 16 ? `${v.slice(0, 15)}…` : v)}
+                />
+                <Tooltip />
+                <Bar dataKey="terjual" name="Terjual" fill="#0f172a" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
 
       <div className="mt-6 overflow-hidden rounded-xl bg-white shadow">

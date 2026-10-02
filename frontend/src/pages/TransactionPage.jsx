@@ -18,6 +18,8 @@ export default function TransactionPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
+  const [printItems, setPrintItems] = useState(null);
+  const [printedAt, setPrintedAt] = useState('');
 
   const fetchTransactions = useCallback(async () => {
     const { data } = await api.get('/transactions', {
@@ -110,13 +112,35 @@ export default function TransactionPage() {
   const formatDate = (value) =>
     new Date(value).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
 
+  const handlePrint = async () => {
+    try {
+      const { data } = await api.get('/transactions', {
+        params: { limit: 1000, type: typeFilter || undefined },
+      });
+      setPrintItems(data.data);
+      setPrintedAt(new Date().toLocaleString('id-ID'));
+      setTimeout(() => window.print(), 100);
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Gagal menyiapkan cetakan');
+    }
+  };
+
   return (
     <div>
-      <h1 className="mb-4 text-xl font-bold">Transaksi</h1>
+      <div className="mb-4 flex items-center justify-between print:hidden">
+        <h1 className="text-xl font-bold">Transaksi</h1>
+        <button
+          onClick={handlePrint}
+          className="rounded border border-slate-900 px-4 py-2 text-sm font-semibold text-slate-900"
+        >
+          Cetak Laporan PDF
+        </button>
+      </div>
+      <h1 className="mb-4 hidden text-xl font-bold print:block">Transaksi</h1>
 
       <form
         onSubmit={handleSubmit}
-        className="mb-6 rounded-xl bg-white p-5 shadow-sm"
+        className="mb-6 rounded-xl bg-white p-5 shadow-sm print:hidden"
       >
         <h2 className="mb-4 font-semibold">Catat Barang Masuk / Keluar</h2>
         {formError && (
@@ -177,7 +201,7 @@ export default function TransactionPage() {
         </div>
       </form>
 
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between print:hidden">
         <h2 className="font-semibold">Riwayat</h2>
         <select
           value={typeFilter}
@@ -197,7 +221,7 @@ export default function TransactionPage() {
         <p className="mb-4 rounded bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
       )}
 
-      <div className="overflow-hidden rounded-xl bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl bg-white shadow-sm print:hidden">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-slate-500">
             <tr>
@@ -251,7 +275,7 @@ export default function TransactionPage() {
         </table>
       </div>
 
-      <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
+      <div className="mt-4 flex items-center justify-between text-sm text-slate-500 print:hidden">
         <span>
           Total {meta.total} transaksi · halaman {meta.page}/{meta.totalPages || 1}
         </span>
@@ -272,6 +296,41 @@ export default function TransactionPage() {
           </button>
         </div>
       </div>
+
+      {printItems && (
+        <div className="hidden print:block">
+          <h1 className="mb-1 text-lg font-bold">Laporan Riwayat Transaksi</h1>
+          <p className="mb-4 text-sm text-gray-600">
+            Dicetak {printedAt}
+            {typeFilter ? ` · Filter: ${typeFilter}` : ' · Semua jenis'} · Total{' '}
+            {printItems.length} baris
+          </p>
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b-2 border-black">
+                <th className="py-2 pr-4 font-semibold">Tanggal</th>
+                <th className="py-2 pr-4 font-semibold">SKU</th>
+                <th className="py-2 pr-4 font-semibold">Produk</th>
+                <th className="py-2 pr-4 font-semibold">Jenis</th>
+                <th className="py-2 pr-4 font-semibold">Jumlah</th>
+                <th className="py-2 font-semibold">Kasir</th>
+              </tr>
+            </thead>
+            <tbody>
+              {printItems.map((t) => (
+                <tr key={t.id} className="border-b">
+                  <td className="py-2 pr-4">{formatDate(t.date)}</td>
+                  <td className="py-2 pr-4 font-mono text-xs">{t.product?.sku}</td>
+                  <td className="py-2 pr-4">{t.product?.name}</td>
+                  <td className="py-2 pr-4">{t.type === 'masuk' ? 'Masuk' : 'Keluar'}</td>
+                  <td className="py-2 pr-4">{t.quantity}</td>
+                  <td className="py-2">{t.user?.name}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
